@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { handleGroqChatPost } from '../server/groq-chat-handler'
+import { handleGroqChatPost } from './lib/groq-chat-handler'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

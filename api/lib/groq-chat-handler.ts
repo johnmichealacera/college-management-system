@@ -104,6 +104,7 @@ async function callGroq(
 
 /**
  * Shared handler for POST /api/groq-chat (Vite dev middleware + Vercel).
+ * Lives under `api/lib/` so Vercel bundles it with the serverless function.
  */
 export async function handleGroqChatPost(
   body: unknown,

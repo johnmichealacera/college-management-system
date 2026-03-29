@@ -92,7 +92,7 @@ For **live dashboard updates**, enable replication for the app tables (including
 - `src/pages/` — Screen-level UI (dashboard, semesters, programs, students, instructors, subjects, enrollments, schedule, grades).
 - `src/contexts/active-semester-context.tsx` — Selected term (header) drives enrollment, schedule, grades, and dashboard filters.
 - `src/components/layout/` — Shell and collapsible sidebar.
-- `server/groq-chat-handler.ts` — Shared handler for `POST /api/groq-chat` (Vite dev + Vercel).
+- `api/lib/groq-chat-handler.ts` — Shared handler for `POST /api/groq-chat` (Vite dev + Vercel; colocated under `api/` so the serverless bundle includes it).
 - `api/groq-chat.ts` — Vercel serverless entry that calls the shared handler.
 - `supabase/migrations/` — Canonical schema and `enroll_student` function.
 - `supabase/seed_demo.sql` — Optional demo dataset.
