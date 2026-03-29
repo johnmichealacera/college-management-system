@@ -1,7 +1,18 @@
 import { supabase } from '@/lib/supabase'
-import type { Schedule, Subject } from '@/types/database'
+import type { Instructor, Schedule, Subject } from '@/types/database'
+import type { SubjectWithInstructor } from '@/services/subjects'
 
-export type ScheduleWithSubject = Schedule & { subject: Subject | null }
+export type ScheduleWithSubject = Schedule & { subject: SubjectWithInstructor | null }
+
+type RawEmbeddedSubject = Subject & { instructor: Instructor | Instructor[] | null }
+
+function normalizeSubjectWithInstructor(raw: RawEmbeddedSubject | null): SubjectWithInstructor | null {
+  if (!raw) return null
+  const emb = raw.instructor
+  const instructor = Array.isArray(emb) ? emb[0] ?? null : emb ?? null
+  const { instructor: _, ...rest } = raw
+  return { ...rest, instructor }
+}
 
 export async function listSchedulesWithSubjects(semesterId: string): Promise<ScheduleWithSubject[]> {
   const { data, error } = await supabase
@@ -9,13 +20,19 @@ export async function listSchedulesWithSubjects(semesterId: string): Promise<Sch
     .select(
       `
       *,
-      subject:subjects (*)
+      subject:subjects (*, instructor:instructors (*))
     `,
     )
     .eq('semester_id', semesterId)
     .order('day_of_week', { ascending: true })
   if (error) throw error
-  return (data ?? []) as ScheduleWithSubject[]
+  return (data ?? []).map((row) => {
+    const r = row as Schedule & { subject: RawEmbeddedSubject | null }
+    return {
+      ...r,
+      subject: normalizeSubjectWithInstructor(r.subject),
+    }
+  })
 }
 
 export async function getScheduleBySubjectAndSemester(

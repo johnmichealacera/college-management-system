@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Subject } from '@/types/database'
+import type { Instructor, Subject } from '@/types/database'
 
 export async function listSubjects(): Promise<Subject[]> {
   const { data, error } = await supabase
@@ -8,6 +8,24 @@ export async function listSubjects(): Promise<Subject[]> {
     .order('name', { ascending: true })
   if (error) throw error
   return data ?? []
+}
+
+export type SubjectWithInstructor = Subject & { instructor: Instructor | null }
+
+/** Subjects with directory instructor (e.g. schedule UI). */
+export async function listSubjectsWithInstructor(): Promise<SubjectWithInstructor[]> {
+  const { data, error } = await supabase
+    .from('subjects')
+    .select('*, instructor:instructors(*)')
+    .order('name', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map((row) => {
+    const r = row as Subject & { instructor: Instructor | Instructor[] | null }
+    const emb = r.instructor
+    const instructor = Array.isArray(emb) ? emb[0] ?? null : emb ?? null
+    const { instructor: _, ...rest } = r
+    return { ...rest, instructor }
+  })
 }
 
 export async function createSubject(
@@ -32,10 +50,19 @@ export async function deleteSubject(id: string): Promise<void> {
   if (error) throw error
 }
 
-export type SubjectWithSlots = Subject & { enrolled_count: number; available_slots: number }
+export type SubjectWithSlots = Subject & {
+  enrolled_count: number
+  available_slots: number
+  instructor: Instructor | null
+}
 
 export async function listSubjectsWithEnrollment(semesterId: string): Promise<SubjectWithSlots[]> {
-  const subjects = await listSubjects()
+  const { data: subjects, error: subErr } = await supabase
+    .from('subjects')
+    .select('*, instructor:instructors(*)')
+    .order('name', { ascending: true })
+  if (subErr) throw subErr
+  const rows = (subjects ?? []) as (Subject & { instructor: Instructor | null })[]
   const { data: counts, error } = await supabase
     .from('enrollments')
     .select('subject_id')
@@ -46,10 +73,13 @@ export async function listSubjectsWithEnrollment(semesterId: string): Promise<Su
     const sid = row.subject_id
     bySubject.set(sid, (bySubject.get(sid) ?? 0) + 1)
   }
-  return subjects.map((s) => {
+  return rows.map((s) => {
     const enrolled = bySubject.get(s.id) ?? 0
+    const { instructor: emb, ...rest } = s
+    const instructor = Array.isArray(emb) ? emb[0] ?? null : emb ?? null
     return {
-      ...s,
+      ...rest,
+      instructor,
       enrolled_count: enrolled,
       available_slots: Math.max(0, s.max_capacity - enrolled),
     }

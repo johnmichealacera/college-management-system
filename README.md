@@ -15,7 +15,8 @@ A **modern admin console** for running a small college or training program: stud
 | **Semesters** | Academic terms (name + date range); **one “active” term** for defaults; header switcher compares Fall vs Spring, etc. |
 | **Programs** | Admin-defined **courses/degrees offered**; students are assigned only from this list. |
 | **Students** | Directory CRUD: **auto-generated student IDs** (`LW-YEAR-####`), **search** and filters (program, year). |
-| **Subjects** | Catalog offerings with **instructor (text)** and **max capacity**; seat counts reflect the **term selected in the header**. |
+| **Instructors** | Faculty directory (**name + work email**); optional **`user_id`** links to Supabase Auth for future instructor login and grade entry. |
+| **Subjects** | Catalog offerings with **assigned instructor** (from the directory) and **max capacity**; seat counts reflect the **term selected in the header**. |
 | **Enrollments** | Enroll via **`enroll_student` (student, subject, semester)** — capacity and duplicates are **per term**. |
 | **Schedule** | One time block **per subject per term**; week + table views. |
 | **Grades** | Per student per subject **per term**: **numeric (0–100)** or **pass/fail**; upsert-safe. |
@@ -35,7 +36,7 @@ Many campus systems grew from accounting and compliance modules. **LocalWeb Coll
    Stripe/Notion-style layout: collapsible sidebar, modal forms, toasts, loading states, and a dashboard meant for a **pitch or walkthrough**, not a week of training.
 
 3. **Small surface, full story**  
-   One coherent path: **semesters** → **programs** → student directory → subject offerings → enroll → schedule → grade. No separate “modules” you have to license to get a working demo.
+   One coherent path: **semesters** → **programs** → student directory → **instructors** → subject offerings → enroll → schedule → grade. No separate “modules” you have to license to get a working demo.
 
 4. **Realtime-ready**  
    Subscriptions can reflect changes as they land—useful for front-desk or lab scenarios where multiple people work at once.
@@ -55,6 +56,7 @@ Many campus systems grew from accounting and compliance modules. **LocalWeb Coll
 - **Active term** — Only one semester is marked active at a time (partial unique index); the header can still focus any term for review.
 - **Student IDs** — Generated in the database for new rows (`LW-<calendar year>-<serial>`); imports can still set an explicit ID.
 - **Programs** — Cannot delete a program that still has students (foreign key).
+- **Instructors** — Work emails are unique. Deleting an instructor unassigns them from subjects (`instructor_id` becomes null). To mark someone as able to sign in, create a Supabase Auth user with the same email, then set `instructors.user_id` to that user’s `auth.users.id` (SQL or a future admin action).
 
 Row Level Security is configured for **authenticated** users in this MVP; tighten policies when you add roles (e.g. student vs registrar).
 
@@ -75,19 +77,19 @@ The assistant will be designed to **respect the same rules as the app** (capacit
 ## Quick start
 
 1. **Environment** — Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-2. **Schema** — In order, run `001_initial.sql`, `002_programs_and_student_id.sql`, and `003_semesters.sql` in the Supabase SQL Editor (or your migration workflow).
-3. **Demo data (optional)** — Run `supabase/seed_demo.sql` after all three migrations for a populated snapshot (chart, full sections, mixed grades, one demo term).
+2. **Schema** — In order, run `001_initial.sql` through `004_instructors.sql` in the Supabase SQL Editor (or your migration workflow).
+3. **Demo data (optional)** — Run `supabase/seed_demo.sql` after all migrations for a populated snapshot (chart, full sections, mixed grades, one demo term, demo instructors).
 4. **Auth** — Create an admin user under **Authentication → Users** in Supabase, then sign in at the app.
 5. **Dev server** — `npm install` then `npm run dev`.
 
-For **live dashboard updates**, enable replication for the app tables (including `programs` and `semesters`) under **Database → Replication** in Supabase.
+For **live dashboard updates**, enable replication for the app tables (including `programs`, `instructors`, and `semesters`) under **Database → Replication** in Supabase.
 
 ---
 
 ## Project layout (high level)
 
-- `src/services/` — Supabase calls (semesters, programs, students, subjects, enrollments, schedules, grades, dashboard).
-- `src/pages/` — Screen-level UI (dashboard, semesters, programs, students, subjects, enrollments, schedule, grades).
+- `src/services/` — Supabase calls (semesters, programs, instructors, students, subjects, enrollments, schedules, grades, dashboard).
+- `src/pages/` — Screen-level UI (dashboard, semesters, programs, students, instructors, subjects, enrollments, schedule, grades).
 - `src/contexts/active-semester-context.tsx` — Selected term (header) drives enrollment, schedule, grades, and dashboard filters.
 - `src/components/layout/` — Shell and collapsible sidebar.
 - `supabase/migrations/` — Canonical schema and `enroll_student` function.

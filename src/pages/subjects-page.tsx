@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
-import type { Subject } from '@/types/database'
+import type { Instructor, Subject } from '@/types/database'
+import { listInstructors } from '@/services/instructors'
 import {
   createSubject,
   deleteSubject,
@@ -34,6 +36,13 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -44,17 +53,20 @@ import {
 import { matchesText, joinSearchParts } from '@/lib/table-filter'
 import { toast } from 'sonner'
 
+/** Radix Select does not support empty string as a value. */
+const NO_INSTRUCTOR = '__none__'
+
 const subjectSchema = z.object({
   name: z.string().min(1, 'Subject name is required'),
   code: z.string().optional(),
-  instructor: z.string(),
+  instructor_id: z.union([z.literal(NO_INSTRUCTOR), z.string().uuid()]),
   max_capacity: z.coerce.number().int().min(1, 'Capacity must be at least 1'),
 })
 
 type SubjectForm = {
   name: string
   code?: string
-  instructor: string
+  instructor_id: string
   max_capacity: number
 }
 
@@ -66,16 +78,25 @@ export function SubjectsPage() {
   const [editing, setEditing] = useState<Subject | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<SubjectWithSlots | null>(null)
   const [tableSearch, setTableSearch] = useState('')
+  const [instructors, setInstructors] = useState<Instructor[]>([])
 
   const form = useForm<SubjectForm>({
     resolver: zodResolver(subjectSchema) as Resolver<SubjectForm>,
     defaultValues: {
       name: '',
       code: '',
-      instructor: '',
+      instructor_id: NO_INSTRUCTOR,
       max_capacity: 30,
     },
   })
+
+  const loadInstructors = useCallback(async () => {
+    try {
+      setInstructors(await listInstructors())
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to load instructors')
+    }
+  }, [])
 
   const load = useCallback(async () => {
     if (!semesterId) {
@@ -97,18 +118,28 @@ export function SubjectsPage() {
     void load()
   }, [load])
 
-  useRealtimeRefresh(load)
+  useEffect(() => {
+    void loadInstructors()
+  }, [loadInstructors])
+
+  useRealtimeRefresh(() => {
+    void load()
+    void loadInstructors()
+  })
 
   const filteredRows = useMemo(() => {
     if (!tableSearch.trim()) return rows
     return rows.filter((s) =>
-      matchesText(joinSearchParts([s.name, s.code, s.instructor]), tableSearch),
+      matchesText(
+        joinSearchParts([s.name, s.code, s.instructor?.full_name, s.instructor?.email]),
+        tableSearch,
+      ),
     )
   }, [rows, tableSearch])
 
   function openCreate() {
     setEditing(null)
-    form.reset({ name: '', code: '', instructor: '', max_capacity: 30 })
+    form.reset({ name: '', code: '', instructor_id: NO_INSTRUCTOR, max_capacity: 30 })
     setDialogOpen(true)
   }
 
@@ -117,7 +148,7 @@ export function SubjectsPage() {
     form.reset({
       name: s.name,
       code: s.code ?? '',
-      instructor: s.instructor,
+      instructor_id: s.instructor_id ?? NO_INSTRUCTOR,
       max_capacity: s.max_capacity,
     })
     setDialogOpen(true)
@@ -128,7 +159,7 @@ export function SubjectsPage() {
       const payload = {
         name: values.name,
         code: values.code || null,
-        instructor: values.instructor || '',
+        instructor_id: values.instructor_id === NO_INSTRUCTOR ? null : values.instructor_id,
         max_capacity: values.max_capacity,
       }
       if (editing) {
@@ -170,7 +201,7 @@ export function SubjectsPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {ready && semester
               ? `Seat counts for ${semester.name} — capacity is enforced per term.`
-              : 'Courses with instructor and capacity — enrollment respects max seats per term.'}
+              : 'Assign an instructor from your directory; enrollment still respects max seats per term.'}
           </p>
         </div>
         <Button onClick={openCreate} className="gap-2 rounded-lg">
@@ -186,7 +217,7 @@ export function SubjectsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search name, code, instructor…"
+                placeholder="Search name, code, instructor name or email…"
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
                 className="rounded-lg pl-9"
@@ -229,7 +260,16 @@ export function SubjectsPage() {
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">{s.name}</TableCell>
                       <TableCell className="text-muted-foreground">{s.code || '—'}</TableCell>
-                      <TableCell>{s.instructor || '—'}</TableCell>
+                      <TableCell>
+                        {s.instructor ? (
+                          <span>
+                            <span className="font-medium">{s.instructor.full_name}</span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">{s.instructor.email}</span>
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className="tabular-nums">
                           {s.enrolled_count} / {s.max_capacity}
@@ -273,7 +313,13 @@ export function SubjectsPage() {
         <DialogContent className="rounded-xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit subject' : 'New subject'}</DialogTitle>
-            <DialogDescription>Set name, optional code, instructor, and maximum seats.</DialogDescription>
+            <DialogDescription>
+              Set name, optional code, assigned instructor, and maximum seats. Add people under{' '}
+              <Link to="/instructors" className="font-medium text-primary underline-offset-4 hover:underline">
+                Instructors
+              </Link>{' '}
+              if the list is empty.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -305,13 +351,34 @@ export function SubjectsPage() {
               />
               <FormField
                 control={form.control}
-                name="instructor"
+                name="instructor_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Instructor</FormLabel>
-                    <FormControl>
-                      <Input className="rounded-lg" placeholder="Name as text" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="rounded-lg">
+                          <SelectValue placeholder="Select instructor (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent
+                        position="popper"
+                        sideOffset={4}
+                        className="min-w-[var(--radix-select-trigger-width)] w-max max-w-[min(32rem,calc(100vw-1.5rem))] p-0"
+                      >
+                        <SelectItem value={NO_INSTRUCTOR}>None</SelectItem>
+                        {instructors.map((i) => (
+                          <SelectItem key={i.id} value={i.id} className="pr-4">
+                            <span className="block w-full min-w-0">
+                              <span className="block font-medium leading-snug">{i.full_name}</span>
+                              <span className="mt-0.5 block break-all text-xs leading-snug text-muted-foreground">
+                                {i.email}
+                              </span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

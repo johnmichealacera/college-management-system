@@ -4,6 +4,7 @@ import { ProtectedLayout } from '@/components/protected-layout'
 import { DashboardPage } from '@/pages/dashboard-page'
 import { EnrollmentsPage } from '@/pages/enrollments-page'
 import { GradesPage } from '@/pages/grades-page'
+import { InstructorsPage } from '@/pages/instructors-page'
 import { LoginPage } from '@/pages/login-page'
 import { ProgramsPage } from '@/pages/programs-page'
 import { SchedulePage } from '@/pages/schedule-page'
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/semesters" element={<SemestersPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/students" element={<StudentsPage />} />
+          <Route path="/instructors" element={<InstructorsPage />} />
           <Route path="/subjects" element={<SubjectsPage />} />
           <Route path="/enrollments" element={<EnrollmentsPage />} />
           <Route path="/schedule" element={<SchedulePage />} />

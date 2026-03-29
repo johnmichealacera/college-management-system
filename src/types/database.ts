@@ -48,6 +48,30 @@ export type Database = {
         }
         Relationships: []
       }
+      instructors: {
+        Row: {
+          id: string
+          full_name: string
+          email: string
+          user_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          full_name: string
+          email: string
+          user_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string
+          email?: string
+          user_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           id: string
@@ -88,7 +112,7 @@ export type Database = {
           id: string
           name: string
           code: string | null
-          instructor: string
+          instructor_id: string | null
           max_capacity: number
           created_at: string
         }
@@ -96,7 +120,7 @@ export type Database = {
           id?: string
           name: string
           code?: string | null
-          instructor?: string
+          instructor_id?: string | null
           max_capacity: number
           created_at?: string
         }
@@ -104,11 +128,19 @@ export type Database = {
           id?: string
           name?: string
           code?: string | null
-          instructor?: string
+          instructor_id?: string | null
           max_capacity?: number
           created_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'subjects_instructor_id_fkey'
+            columns: ['instructor_id']
+            isOneToOne: false
+            referencedRelation: 'instructors'
+            referencedColumns: ['id']
+          },
+        ]
       }
       enrollments: {
         Row: {
@@ -279,6 +311,7 @@ export type Database = {
 
 export type Semester = Database['public']['Tables']['semesters']['Row']
 export type Program = Database['public']['Tables']['programs']['Row']
+export type Instructor = Database['public']['Tables']['instructors']['Row']
 export type Student = Database['public']['Tables']['students']['Row']
 
 export type StudentWithProgram = Student & {

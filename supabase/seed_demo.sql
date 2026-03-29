@@ -1,8 +1,8 @@
 -- =============================================================================
 -- LocalWeb College — DEMO SEED DATA
 -- =============================================================================
--- Run after `001_initial.sql`, `002_programs_and_student_id.sql`, and
--- `003_semesters.sql`.
+-- Run after `001_initial.sql`, `002_programs_and_student_id.sql`,
+-- `003_semesters.sql`, and `004_instructors.sql`.
 --
 -- Optional: uncomment TRUNCATE below to wipe existing rows and reload a fresh
 -- demo (only on non-production databases).
@@ -12,7 +12,7 @@
 -- =============================================================================
 
 -- Uncomment to reset all app tables (WARNING: deletes all data in these tables)
--- truncate table public.grades, public.enrollments, public.schedules, public.subjects, public.students, public.programs, public.semesters cascade;
+-- truncate table public.grades, public.enrollments, public.schedules, public.subjects, public.students, public.instructors, public.programs, public.semesters cascade;
 -- truncate table public.student_id_seq;
 
 -- Default demo term id (matches migration 003 legacy row; insert no-ops if present)
@@ -52,15 +52,27 @@ insert into public.students (id, full_name, student_id, program_id, year_level) 
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
+-- Instructors (directory — optional user_id links to auth for grade entry login)
+-- ---------------------------------------------------------------------------
+insert into public.instructors (id, full_name, email) values
+  ('50000000-0000-4000-8000-000000000001', 'Dr. Helen Vargas',       'helen.vargas@demo.localweb.edu'),
+  ('50000000-0000-4000-8000-000000000002', 'Prof. Omar Siddiqui',    'omar.siddiqui@demo.localweb.edu'),
+  ('50000000-0000-4000-8000-000000000003', 'Dr. Priya Nair',         'priya.nair@demo.localweb.edu'),
+  ('50000000-0000-4000-8000-000000000004', 'Prof. Daniel Frost',     'daniel.frost@demo.localweb.edu'),
+  ('50000000-0000-4000-8000-000000000005', 'Dr. Rachel Okonkwo',     'rachel.okonkwo@demo.localweb.edu'),
+  ('50000000-0000-4000-8000-000000000006', 'Prof. Marcus Lee',       'marcus.lee@demo.localweb.edu')
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
 -- Subjects (capacity chosen so chart + “slots left” look interesting)
 -- ---------------------------------------------------------------------------
-insert into public.subjects (id, name, code, instructor, max_capacity) values
-  ('20000000-0000-4000-8000-000000000001', 'Data Structures & Algorithms', 'CS-210', 'Dr. Helen Vargas',        5),
-  ('20000000-0000-4000-8000-000000000002', 'Database Systems',             'CS-330', 'Prof. Omar Siddiqui',     6),
-  ('20000000-0000-4000-8000-000000000003', 'Web Application Development',  'CS-340', 'Dr. Priya Nair',          8),
-  ('20000000-0000-4000-8000-000000000004', 'Principles of Marketing',      'BA-220', 'Prof. Daniel Frost',      25),
-  ('20000000-0000-4000-8000-000000000005', 'Business Statistics',         'BA-250', 'Dr. Rachel Okonkwo',      20),
-  ('20000000-0000-4000-8000-000000000006', 'Capstone Project Seminar',     'IS-499', 'Prof. Marcus Lee',        4)
+insert into public.subjects (id, name, code, instructor_id, max_capacity) values
+  ('20000000-0000-4000-8000-000000000001', 'Data Structures & Algorithms', 'CS-210', '50000000-0000-4000-8000-000000000001', 5),
+  ('20000000-0000-4000-8000-000000000002', 'Database Systems',             'CS-330', '50000000-0000-4000-8000-000000000002', 6),
+  ('20000000-0000-4000-8000-000000000003', 'Web Application Development',  'CS-340', '50000000-0000-4000-8000-000000000003', 8),
+  ('20000000-0000-4000-8000-000000000004', 'Principles of Marketing',      'BA-220', '50000000-0000-4000-8000-000000000004', 25),
+  ('20000000-0000-4000-8000-000000000005', 'Business Statistics',         'BA-250', '50000000-0000-4000-8000-000000000005', 20),
+  ('20000000-0000-4000-8000-000000000006', 'Capstone Project Seminar',     'IS-499', '50000000-0000-4000-8000-000000000006', 4)
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

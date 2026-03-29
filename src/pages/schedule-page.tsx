@@ -5,11 +5,13 @@ import {
   saveScheduleForSubject,
   type ScheduleWithSubject,
 } from '@/services/schedules'
-import { listSubjects } from '@/services/subjects'
+import {
+  listSubjectsWithInstructor,
+  type SubjectWithInstructor,
+} from '@/services/subjects'
 import { useActiveSemester } from '@/contexts/active-semester-context'
 import { useRealtimeRefresh } from '@/hooks/use-realtime-refresh'
 import { WEEKDAYS } from '@/lib/constants'
-import type { Subject } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -40,10 +42,25 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 
+function SubjectInstructorBlock({ subject }: { subject: SubjectWithInstructor | null | undefined }) {
+  const ins = subject?.instructor
+  if (!ins) {
+    return <span className="text-xs text-muted-foreground">No instructor assigned</span>
+  }
+  return (
+    <span className="block min-w-0">
+      <span className="block text-xs font-medium leading-snug text-muted-foreground">{ins.full_name}</span>
+      <span className="mt-0.5 block break-all text-[0.65rem] leading-snug text-muted-foreground/85">
+        {ins.email}
+      </span>
+    </span>
+  )
+}
+
 export function SchedulePage() {
   const { semesterId, semester, ready } = useActiveSemester()
   const [schedules, setSchedules] = useState<ScheduleWithSubject[]>([])
-  const [allSubjects, setAllSubjects] = useState<Subject[]>([])
+  const [allSubjects, setAllSubjects] = useState<SubjectWithInstructor[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ScheduleWithSubject | null>(null)
@@ -64,7 +81,7 @@ export function SchedulePage() {
     try {
       const [sch, subj] = await Promise.all([
         listSchedulesWithSubjects(semesterId),
-        listSubjects(),
+        listSubjectsWithInstructor(),
       ])
       setSchedules(sch)
       setAllSubjects(subj)
@@ -190,8 +207,11 @@ export function SchedulePage() {
                             key={s.id}
                             className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm transition-colors hover:bg-muted/50"
                           >
-                            <div className="font-medium">{s.subject?.name ?? 'Subject'}</div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="font-medium leading-snug">{s.subject?.name ?? 'Subject'}</div>
+                            <div className="mt-1.5 border-l-2 border-primary/25 pl-2">
+                              <SubjectInstructorBlock subject={s.subject} />
+                            </div>
+                            <div className="mt-2 text-xs text-muted-foreground">
                               {s.start_time} – {s.end_time}
                               {s.room ? ` · ${s.room}` : ''}
                             </div>
@@ -234,10 +254,15 @@ export function SchedulePage() {
                       </TableRow>
                     ) : (
                       schedules.map((s) => (
-                        <TableRow key={s.id}>
-                          <TableCell className="font-medium">{s.subject?.name ?? '—'}</TableCell>
-                          <TableCell>{s.day_of_week}</TableCell>
-                          <TableCell className="tabular-nums">
+                        <TableRow key={s.id} className="align-top">
+                          <TableCell className="max-w-[16rem]">
+                            <div className="font-medium leading-snug">{s.subject?.name ?? '—'}</div>
+                            <div className="mt-1.5 border-l-2 border-primary/25 pl-2">
+                              <SubjectInstructorBlock subject={s.subject} />
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">{s.day_of_week}</TableCell>
+                          <TableCell className="whitespace-nowrap tabular-nums">
                             {s.start_time} – {s.end_time}
                           </TableCell>
                           <TableCell>{s.room || '—'}</TableCell>
@@ -280,10 +305,19 @@ export function SchedulePage() {
                 <SelectTrigger className="rounded-lg">
                   <SelectValue placeholder="Subject" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="min-w-[var(--radix-select-trigger-width)] w-max max-w-[min(28rem,calc(100vw-1.5rem))]">
                   {allSubjects.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
+                    <SelectItem key={s.id} value={s.id} className="pr-4">
+                      <span className="block w-full min-w-0 text-left">
+                        <span className="block font-medium leading-snug">{s.name}</span>
+                        {s.instructor ? (
+                          <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                            {s.instructor.full_name} · {s.instructor.email}
+                          </span>
+                        ) : (
+                          <span className="mt-0.5 block text-xs text-muted-foreground">No instructor assigned</span>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

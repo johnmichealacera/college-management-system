@@ -5,6 +5,7 @@ import { hasSupabaseConfig } from '@/lib/config'
 const TABLES = [
   'semesters',
   'programs',
+  'instructors',
   'students',
   'subjects',
   'enrollments',

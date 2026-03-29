@@ -11,6 +11,7 @@ import {
   LibraryBig,
   PanelLeftClose,
   PanelLeft,
+  UserPen,
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -31,6 +32,7 @@ const nav: NavItem[] = [
   { to: '/semesters', label: 'Semesters', icon: CalendarRange },
   { to: '/programs', label: 'Programs', icon: LibraryBig },
   { to: '/students', label: 'Students', icon: Users },
+  { to: '/instructors', label: 'Instructors', icon: UserPen },
   { to: '/subjects', label: 'Subjects', icon: BookOpen },
   { to: '/enrollments', label: 'Enrollments', icon: ClipboardList },
   { to: '/schedule', label: 'Schedule', icon: CalendarDays },
