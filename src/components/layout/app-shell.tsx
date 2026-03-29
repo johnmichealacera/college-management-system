@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
+import { AssistantSheet } from '@/components/assistant/assistant-sheet'
 import { Sidebar } from '@/components/layout/sidebar'
 import { ModeToggle } from '@/components/mode-toggle'
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,7 @@ function AppShellLayout() {
                 </SelectContent>
               </Select>
             )}
+            <AssistantSheet />
             <ModeToggle />
             <Button variant="outline" size="sm" className="gap-2 rounded-lg" onClick={handleSignOut}>
               <LogOut className="size-4" />

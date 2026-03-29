@@ -62,21 +62,21 @@ Row Level Security is configured for **authenticated** users in this MVP; tighte
 
 ---
 
-## Roadmap: AI integration assistant
+## AI assistant (Groq)
 
-**Planned (not shipped yet):** an **AI assistant** embedded in the admin experience to help staff work faster and answer questions in context—for example:
+The header includes an **Assistant** control that opens a side panel. It sends your **current route** and **header-selected term** plus a **dashboard snapshot** (totals and top subjects by enrollment) to a **server-side** Groq endpoint. The model is **advisory only**—it cannot write to the database; staff continue to use the app for enrollments and grades.
 
-- Natural-language lookups (“Who is enrolled in CS-210 this term?”).
-- Guided workflows (“Walk me through enrolling a waitlisted student without breaking capacity.”).
-- Summaries for meetings or accreditation snippets from current directory and enrollment data.
+**Secrets:** add `GROQ_API_KEY` to `.env` (see `.env.example`). Do **not** prefix it with `VITE_`, or it would be bundled to the browser. After adding or changing `GROQ_API_KEY`, restart the dev server (`npm run dev`). Optional: `GROQ_MODEL` (default `llama-3.3-70b-versatile`).
 
-The assistant will be designed to **respect the same rules as the app** (capacity, duplicates, RLS) so suggestions stay aligned with what the database actually allows. Documentation here will be updated when the feature lands.
+**Local dev:** `POST /api/groq-chat` is handled by Vite middleware and validates the Supabase session from the `Authorization: Bearer <access_token>` header.
+
+**Vercel:** deploy with `api/groq-chat.ts` and set `GROQ_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY` in the project environment (same values as the client build).
 
 ---
 
 ## Quick start
 
-1. **Environment** — Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+1. **Environment** — Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and (for the assistant) `GROQ_API_KEY`.
 2. **Schema** — In order, run `001_initial.sql` through `004_instructors.sql` in the Supabase SQL Editor (or your migration workflow).
 3. **Demo data (optional)** — Run `supabase/seed_demo.sql` after all migrations for a populated snapshot (chart, full sections, mixed grades, one demo term, demo instructors).
 4. **Auth** — Create an admin user under **Authentication → Users** in Supabase, then sign in at the app.
@@ -92,6 +92,8 @@ For **live dashboard updates**, enable replication for the app tables (including
 - `src/pages/` — Screen-level UI (dashboard, semesters, programs, students, instructors, subjects, enrollments, schedule, grades).
 - `src/contexts/active-semester-context.tsx` — Selected term (header) drives enrollment, schedule, grades, and dashboard filters.
 - `src/components/layout/` — Shell and collapsible sidebar.
+- `server/groq-chat-handler.ts` — Shared handler for `POST /api/groq-chat` (Vite dev + Vercel).
+- `api/groq-chat.ts` — Vercel serverless entry that calls the shared handler.
 - `supabase/migrations/` — Canonical schema and `enroll_student` function.
 - `supabase/seed_demo.sql` — Optional demo dataset.
 
